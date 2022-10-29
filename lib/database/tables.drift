@@ -1,0 +1,13 @@
+CREATE TABLE availabilites (
+    id INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+    starttime DATETIME NOT NULL,
+    endtime DATETIME NOT NULL
+) AS Availability;
+
+CREATE TABLE RESERVATIONS (
+    id TEXT(4) NOT NULL PRIMARY KEY,
+    starttime DATETIME NOT NULL,
+    endtime DATETIME NOT NULL,
+    title TEXT NOT NULL,
+    email TEXT NOT NULL
+);
