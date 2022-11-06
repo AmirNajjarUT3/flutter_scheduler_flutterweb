@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
 import 'package:drift/web.dart';
-import 'package:tuple/tuple.dart';
-
 part 'db.g.dart';
 
 @DriftDatabase(
@@ -13,7 +11,8 @@ class AppDb extends _$AppDb {
   @override
   int get schemaVersion => 1;
 
-  Future<List<Availability>> getAvailabilities() => select(availabilites).get();
+  Future<List<Availability>> getAvailabilities() async =>
+      await select(availabilites).get();
 
   Future<int> addAvailability(DateTime startTime, DateTime endTime) async {
     AvailabilitesCompanion entry = AvailabilitesCompanion(
@@ -23,25 +22,22 @@ class AppDb extends _$AppDb {
     return await into(availabilites).insert(entry);
   }
 
-  Future<void> addBatchAvailabilities(
-      List<Tuple2<DateTime, DateTime>> times) async {
+  Future<void> addBatchAvailabilities(List<Availability> times) async {
     await batch((batch) {
       batch.insertAll(
         availabilites,
         times
-            .map((value) => AvailabilitesCompanion.insert(
-                  starttime: value.item1,
-                  endtime: value.item2,
+            .map((availability) => AvailabilitesCompanion.insert(
+                  starttime: availability.starttime,
+                  endtime: availability.endtime,
                 ))
             .toList(),
       );
     });
   }
 
-  Future<int> deleteAvailability(DateTime startTime, DateTime endTime) async {
-    return await (delete(availabilites)
-          ..where((tbl) =>
-              (tbl.starttime.equals(startTime) & tbl.endtime.equals(endTime))))
+  Future<int> deleteAvailability(int id) async {
+    return await (delete(availabilites)..where((tbl) => (tbl.id.equals(id))))
         .go();
   }
 
@@ -61,13 +57,34 @@ class AppDb extends _$AppDb {
     return await into(reservations).insert(entry);
   }
 
-  Future<int> deleteReservation(String id, String email) {
-    return (delete(reservations)
+  Future<Reservation?> getReservation(String ref, String email) async {
+    List<Reservation> ls = await select(reservations).get();
+    if (ls
+        .where((element) =>
+            (element.id.compareTo(ref) == 0) &
+            (element.email.compareTo(email) == 0))
+        .isEmpty) {
+      return null;
+    }
+    return ls
+        .where((element) =>
+            (element.id.compareTo(ref) == 0) &
+            (element.email.compareTo(email) == 0))
+        .first;
+  }
+
+  Future<List<String>> getAllReservationIds() async {
+    List<Reservation> result = await select(reservations).get();
+    return result.map((reservation) => reservation.id).toList();
+  }
+
+  Future<int> deleteReservation(String id, String email) async {
+    return await (delete(reservations)
           ..where(((tbl) => (tbl.id.equals(id) & tbl.email.equals(email)))))
         .go();
   }
 
-  Future<int> clearReservations() {
-    return (delete(reservations)).go();
+  Future<int> clearReservations() async {
+    return await (delete(reservations)).go();
   }
 }
