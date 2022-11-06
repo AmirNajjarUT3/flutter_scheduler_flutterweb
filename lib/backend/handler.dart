@@ -8,6 +8,8 @@ import 'dart:math';
 class Handler with ChangeNotifier {
   List<Availability> _availabilities = [];
   final AppDb _dbInstance = DBHelper.getDbInstance();
+
+  // Fetch availabilities and populate _availabilities list
   Future<void> fetchAvailabilities() async {
     _availabilities = await DBHelper.getAvailabilities(_dbInstance);
     if (_availabilities.isEmpty) {
@@ -40,11 +42,13 @@ class Handler with ChangeNotifier {
     notifyListeners();
   }
 
+  // Get a map of availabilities for each day
   Map<DateTime, List<DateTime>> get dayMap {
     Map<DateTime, List<DateTime>> result = {};
     for (DateTime dt = constants.START_DATE;
         dt.compareTo(constants.END_DATE) <= 0;
         dt = dt.add(Duration(days: 1))) {
+      // Not available on weekends
       if (dt.weekday > 5) continue;
       result[dt] = _possibleTimes(dt);
       result[dt]!.sort((a, b) => a.compareTo(b));
@@ -52,11 +56,14 @@ class Handler with ChangeNotifier {
     return result;
   }
 
+  // Check if two dates are in the same "half"-day or not
+  // i.e. before or after lunch break
   bool isSameHalf(DateTime dt1, DateTime dt2) {
     return ((dt1.hour <= 12) & (dt2.hour <= 12)) |
         ((dt1.hour >= 13) & (dt2.hour >= 13));
   }
 
+  // Get available times to choose given a start time
   List<DateTime> getTimesGivenStart(DateTime startTime) {
     List<DateTime> result = [];
     final pTimes = _possibleTimesLEQ(startTime);
@@ -71,6 +78,7 @@ class Handler with ChangeNotifier {
     return result;
   }
 
+  // Get possible start times given a day
   List<DateTime> _possibleTimes(DateTime day) {
     List<DateTime> result = [];
     for (Availability av in _availabilities) {
@@ -85,6 +93,7 @@ class Handler with ChangeNotifier {
     return result;
   }
 
+  // Get possible end times given a day
   List<DateTime> _possibleTimesLEQ(DateTime day) {
     List<DateTime> result = [];
     for (Availability av in _availabilities) {
@@ -99,6 +108,7 @@ class Handler with ChangeNotifier {
     return result;
   }
 
+  // Add an availability slot
   Future<void> addAvailability(
     DateTime startTime,
     DateTime endTime,
@@ -113,6 +123,7 @@ class Handler with ChangeNotifier {
     notifyListeners();
   }
 
+  // Delete an availability slot
   Future<void> deleteAvailability(
     int id,
   ) async {
@@ -121,12 +132,14 @@ class Handler with ChangeNotifier {
     await DBHelper.deleteAvailability(_dbInstance, id);
   }
 
+  // Clear all availabilities
   Future<void> clearAvailabilities() async {
     await DBHelper.clearAvailabilites(_dbInstance);
     await fetchAvailabilities();
     notifyListeners();
   }
 
+  // Create a reservation
   Future<String> createReservation(
     DateTime startTime,
     DateTime endTime,
@@ -147,7 +160,9 @@ class Handler with ChangeNotifier {
           await addAvailability(endTime, av.endtime);
         }
         await fetchAvailabilities();
-        // create the reservation
+        // Create the reservation
+        // Generate a random ID of 5 uppercase letters
+        // Check that the id is indeed unique
         Random rnd = Random();
         String id = '';
         bool dupId = true;
@@ -174,6 +189,7 @@ class Handler with ChangeNotifier {
     return "Couldn't get a reservation";
   }
 
+  // Delete a reservation given a reference id and an email
   Future<bool> deleteReservation(String id, String email) async {
     Reservation? res = await DBHelper.getReservation(_dbInstance, id, email);
     if (res == null) {
@@ -193,6 +209,7 @@ class Handler with ChangeNotifier {
     return true;
   }
 
+  // Check if a given string is a valid email address
   bool validateEmail(String value) {
     String pattern =
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]"

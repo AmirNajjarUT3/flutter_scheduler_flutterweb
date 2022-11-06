@@ -1,5 +1,6 @@
 import 'package:appointment_scheduler_flutterweb/database/db.dart';
 
+// A DBHelper class that allows to execute Database operation as well as obtaining database instances
 class DBHelper {
   static AppDb getDbInstance() {
     return AppDb();
